@@ -3,19 +3,19 @@
 并且创建出窗口大小为5的input以及目标target
 同时将原数据集划分为训练集，测试集和验证集
 """
-from email.encoders import encode_noop
+
 
 import jieba
 import pandas as pd
 import tqdm
 from sklearn.model_selection import train_test_split
 
+from tokenizer import JiebaTokenizer
 import config
 
-def build_dataset(sentences, word2index):
+def build_dataset(sentences, tokenizer):
     dataset = []
-    indexed_sentences = [[word2index.get(token, word2index['<unk>']) for token in jieba.lcut(sentence)] for
-                               sentence in sentences]
+    indexed_sentences = [tokenizer.encode(sentence) for sentence in sentences]
     for sentence in tqdm(indexed_sentences, desc="构建词表"):
         for i in range(len(sentence) - config.SEQ_LEN):
             input = sentence[i: i + config.SEQ_LEN]
@@ -37,24 +37,16 @@ def process():
     train_sentences, test_sentences = train_test_split(sentences, test_size=0.2)
 
     #4.构建词表
-    vocab_set = set()
-    for sentence in train_sentences:
-        vocab_set.update(jieba.lcut(sentence))
-    vocab_list = ['<unk>'] + list(vocab_set)
-    #print(len(vocab_list))
-
-    #5.保存词表
-    with open(config.MODELS_DIR / 'vocab_list.txt', 'w', encoding='utf-8') as f:
-        f.write('\n'.join(vocab_list))
+    JiebaTokenizer.build_vocab(train_sentences, config.MODELS_DIR / "vocab_list .txt")
 
     #6.构建训练集
-    word2index = {word: index for index, word in enumerate(vocab_list)}
-    train_dataset = build_dataset(train_sentences, word2index)
+    tokenizer = JiebaTokenizer.from_vocab( config.MODELS_DIR / "vocab_list .txt")
+    train_dataset = build_dataset(train_sentences, tokenizer)
     #7.保存训练集
     pd.DataFrame(train_dataset).to_json(config.PROCESSED_DATA_DIR / 'train_dataset.jsonl', orient='records', lines=True)
 
     #8.构建测试集
-    test_dataset = build_dataset(test_sentences, word2index)
+    test_dataset = build_dataset(test_sentences, tokenizer)
     #9.保存测试集
     pd.DataFrame(test_dataset).to_json(config.PROCESSED_DATA_DIR / 'test_dataset.jsonl', orient='records', lines=True)
 

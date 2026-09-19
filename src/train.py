@@ -6,6 +6,7 @@ from tqdm import tqdm
 import config
 from dataset import get_dataloader
 from model import InputMethodModel
+from tokenizer import JiebaTokenizer
 
 
 def train_one_epoch(model, dataloader, loss_f, optimizer, device):
@@ -43,11 +44,10 @@ def train():
     dataloader = get_dataloader()
 
     # 3.词表
-    with open(config.MODELS_DIR / 'vocab_list.txt', 'r', encoding='utf-8') as f:
-        vocab_list = [line.strip() for line in f.readlines()]
+    tokenizer = JiebaTokenizer.from_vocab(config.MODELS_DIR / 'vocab.txt')
 
     # 4.模型
-    model = InputMethodModel(vocab_size=len(vocab_list)).to(device)
+    model = InputMethodModel(vocab_size=tokenizer.vocab_size).to(device)
 
     # 5.损失函数
     loss_f = torch.nn.CrossEntropyLoss()
